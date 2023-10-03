@@ -178,8 +178,7 @@ int parseFile(string &data) {
 
   string line;
   if (file.is_open()) {
-    while (file) {
-      getline(file, line);
+    while (getline(file, line)) {
       data += line;
     }
   } else {

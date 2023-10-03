@@ -24,8 +24,8 @@ string currTokenLiteral(vector<token> &tokens) {
   return getTokenStr[currToken(tokens).tokenType];
 }
 
-// Expresson can be of type: INFIX | PREFIX | IDENTIFIER | LITERAL
-enum expressionType { ID, LITERAL, PRE, IN };
+// Expresson can be of type: INFIX | PREFIX | IDENTIFIER | LITERAL | BOOLEAN
+enum expressionType { ID, LITERAL, PRE, IN, BOOL };
 
 class Expression { // Node of an Expression Tree
 public:
@@ -74,14 +74,35 @@ public:
       : Expression(LITERAL, tokenType, "", "", literal, NULL, NULL) {}
 };
 
+class Boolean : public Expression {
+public:
+  Boolean(tokentype tokenType, int val)
+      : Expression(BOOL, tokenType, "", "", val, NULL, NULL) {}
+};
+
+Expression *parseExpression(vector<token> &tokens, int precedence);
 Expression *parseInfixExpression(vector<token> &tokens, Expression *exp);
 Expression *parsePrefixExpression(vector<token> &tokens);
-Expression *parseExpression(vector<token> &tokens, int precedence);
 Expression *parseInfixFn(vector<token> &tokens, Expression *exp);
 Expression *parsePrefixFn(vector<token> &tokens, tokentype tokenType);
 
 Expression *parseIdentifer(vector<token> &tokens);
 Expression *parseIntegerLiteral(vector<token> &tokens);
+Expression *parseBoolean(vector<token> &tokens);
+
+Expression *parseExpression(vector<token> &tokens, int precedence) {
+  Expression *leftExp = parsePrefixFn(tokens, currToken(tokens).tokenType);
+  if (leftExp == NULL) {
+    cout << "Parsing Error: No prefix function called!!" << endl;
+    return NULL;
+  }
+  while (currToken(tokens).tokenType != SEMICOLON &&
+         precedence < peekPrecedence(tokens)) {
+    GetNextToken(tokens);
+    leftExp = parseInfixFn(tokens, leftExp);
+  }
+  return leftExp;
+}
 
 Expression *parseInfixExpression(vector<token> &tokens, Expression *exp) {
   Expression *node = new InfixExpression(currToken(tokens).tokenType,
@@ -97,6 +118,17 @@ Expression *parsePrefixExpression(vector<token> &tokens) {
   GetNextToken(tokens);
   node->right = parseExpression(tokens, PREFIX);
   return node;
+}
+
+Expression *parseGroupedExpression(vector<token> &tokens) {
+  GetNextToken(tokens);
+  Expression *exp = parseExpression(tokens, LOWEST);
+  if (peekToken(tokens).tokenType != RPAREN) {
+    cout << "Parsing Error: Expected RPAREN. Got "
+         << getTokenStr[peekToken(tokens).tokenType] << endl;
+  }
+  GetNextToken(tokens);
+  return exp;
 }
 
 Expression *parseInfixFn(vector<token> &tokens, Expression *exp) {
@@ -144,23 +176,18 @@ Expression *parsePrefixFn(vector<token> &tokens, tokentype type) {
   case BANG:
     return parsePrefixExpression(tokens);
 
+  case TRUE:
+    return parseBoolean(tokens);
+
+  case FALSE:
+    return parseBoolean(tokens);
+
+  case LPAREN:
+    return parseGroupedExpression(tokens);
+
   default:
     return NULL;
   }
-}
-
-Expression *parseExpression(vector<token> &tokens, int precedence) {
-  Expression *leftExp = parsePrefixFn(tokens, currToken(tokens).tokenType);
-  if (leftExp == NULL) {
-    cout << "Parsing Error: No prefix function called!!" << endl;
-    return NULL;
-  }
-  while (currToken(tokens).tokenType != SEMICOLON &&
-         precedence < peekPrecedence(tokens)) {
-    GetNextToken(tokens);
-    leftExp = parseInfixFn(tokens, leftExp);
-  }
-  return leftExp;
 }
 
 Expression *parseIdentifer(vector<token> &tokens) {
@@ -170,6 +197,11 @@ Expression *parseIdentifer(vector<token> &tokens) {
 Expression *parseIntegerLiteral(vector<token> &tokens) {
   return new Literal(currToken(tokens).tokenType,
                      stoi(currToken(tokens).lexeme));
+}
+
+Expression *parseBoolean(vector<token> &tokens) {
+  return new Boolean(currToken(tokens).tokenType,
+                     currToken(tokens).lexeme == "true");
 }
 
 class Statement {
@@ -182,7 +214,7 @@ public:
   Statement(string type, string id, string val, Expression *expr) {
     this->type = type;
     this->id = id;
-    this->val= val;
+    this->val = val;
     this->expr = expr;
   }
 };
@@ -295,7 +327,7 @@ int parseStatement(program &p, vector<token> &t) {
     }
     GetNextToken(t);
   }
-  printProgram(p);
+  // printProgram(p);
   return 0;
 }
 
