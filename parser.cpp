@@ -1,37 +1,40 @@
 #include "lexer.hpp"
 using namespace std;
 
-// Precendences
 enum precedence { LOWEST, EQUALS, LESSGREATER, SUM, PRODUCT, PREFIX, CALL };
 
-// Map token to given predence
 unordered_map<tokentype, precedence> tokenPrecedence = {
     {EQUAL, EQUALS},   {NOT_EQUAL, EQUALS}, {GT, LESSGREATER},
     {LT, LESSGREATER}, {PLUS, SUM},         {MINUS, SUM},
-    {DIVIDE, PRODUCT}, {MULTIPLY, PRODUCT}
-    //
-};
+    {DIVIDE, PRODUCT}, {MULTIPLY, PRODUCT}};
 
-// Expresson can be of type: INFIX | PREFIX | IDENTIFIER | LITERAL | BOOLEAN
-enum expressionType { ID, LITERAL, PRE, IN, BOOL };
+enum expressionType { ID, LITERAL, PRE, IN, BOOL, IFEXPR };
 
-class Expression { // Node of an Expression Tree
+class Expression;
+class Statement;
+class BlockStatement;
+
+class Expression {
 public:
   expressionType type;
   tokentype tokenType;
   string op;   // If node is INFIX
   string id;   // If node is IDENT
   int literal; // If node is INT
-  Expression *left;
-  Expression *right;
+  Expression *cond, *left, *right;
+  BlockStatement *conseq, *altern;
 
   Expression(expressionType type, tokentype tokenType, string op, string id,
-             int literal, Expression *left, Expression *right) {
+             int literal, BlockStatement *conseq, BlockStatement *altern,
+             Expression *cond, Expression *left, Expression *right) {
     this->type = type;
     this->tokenType = tokenType;
     this->op = op;
     this->id = id;
     this->literal = literal;
+    this->cond = cond;
+    this->conseq = conseq;
+    this->altern = altern;
     this->left = left;
     this->right = right;
   }
@@ -40,32 +43,42 @@ public:
 class PrefixExpression : public Expression {
 public:
   PrefixExpression(tokentype tokenType, string op, Expression *right)
-      : Expression(PRE, tokenType, op, "", 0, NULL, right) {}
+      : Expression(PRE, tokenType, op, "", 0, NULL, NULL, NULL, NULL, right) {}
 };
 
 class InfixExpression : public Expression {
 public:
   InfixExpression(tokentype tokenType, string op, Expression *left,
                   Expression *right)
-      : Expression(IN, tokenType, op, "", 0, left, right) {}
+      : Expression(IN, tokenType, op, "", 0, NULL, NULL, NULL, left, right) {}
 };
 
 class Identifier : public Expression {
 public:
   Identifier(tokentype tokenType, string id)
-      : Expression(ID, tokenType, "", id, 0, NULL, NULL) {}
+      : Expression(ID, tokenType, "", id, 0, NULL, NULL, NULL, NULL, NULL) {}
 };
 
 class Literal : public Expression {
 public:
   Literal(tokentype tokenType, int literal)
-      : Expression(LITERAL, tokenType, "", "", literal, NULL, NULL) {}
+      : Expression(LITERAL, tokenType, "", "", literal, NULL, NULL, NULL, NULL,
+                   NULL) {}
 };
 
 class Boolean : public Expression {
 public:
   Boolean(tokentype tokenType, int val)
-      : Expression(BOOL, tokenType, "", "", val, NULL, NULL) {}
+      : Expression(BOOL, tokenType, "", "", val, NULL, NULL, NULL, NULL, NULL) {
+  }
+};
+
+class IfExpression : public Expression {
+public:
+  IfExpression(tokentype tokenType, BlockStatement *conseq,
+               BlockStatement *altern, Expression *cond)
+      : Expression(IFEXPR, tokenType, "", "", 0, conseq, altern, cond, NULL,
+                   NULL) {}
 };
 
 class Statement {
@@ -99,10 +112,17 @@ public:
       : Statement("EXP", "", val, exp) {}
 };
 
-// Main root node
+class BlockStatement {
+public:
+  tokentype tokenType;
+  vector<Statement *> statements;
+
+  BlockStatement(tokentype tokenType) { this->tokenType = tokenType; }
+};
+
 class program {
 public:
-  vector<Statement> statements;
+  vector<Statement *> statements;
   vector<token> tokens;
 
   token GetNextToken() {
@@ -117,28 +137,33 @@ public:
   int peekPrecedence() { return tokenPrecedence[peekToken().tokenType]; }
   string currTokenLiteral() { return getTokenStr[currToken().tokenType]; }
 
-  int parseStatement();
-  int parseReturnStatement();
-  int parseLetStatement();
-  int parseExpressionStatement();
+  Statement *parseStatement();
+  Statement *parseReturnStatement();
+  Statement *parseLetStatement();
+  Statement *parseExpressionStatement();
+  BlockStatement *parseBlockStatement();
 
   Expression *parseExpression(int precedence);
   Expression *parseInfixExpression(Expression *exp);
   Expression *parsePrefixExpression();
   Expression *parseGroupedExpression();
+  Expression *parseIfExpression();
+
   Expression *parseInfixFn(Expression *exp);
   Expression *parsePrefixFn(tokentype tokenType);
 
   Expression *parseIdentifer();
   Expression *parseIntegerLiteral();
   Expression *parseBoolean();
+
+  void parseProgram();
 };
 
-int program ::parseLetStatement() {
+Statement *program ::parseLetStatement() {
   if (peekToken().tokenType != IDENT) {
     cout << "Parsing Error: Expected IDENT. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
   string id = currToken().lexeme;
@@ -146,14 +171,14 @@ int program ::parseLetStatement() {
   if (peekToken().tokenType != ASSIGN) {
     cout << "Parsing Error: Expected ASSIGN. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
 
   if (peekToken().tokenType != INT) {
     cout << "Parsing Error: Expected INT. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
   string val = currToken().lexeme;
@@ -162,19 +187,18 @@ int program ::parseLetStatement() {
   if (peekToken().tokenType != SEMICOLON) {
     cout << "Parsing Error: Expected SEMICOLON. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
 
-  statements.push_back((Statement)LetStatement(id, val));
-  return 0;
+  return (Statement *)(new LetStatement(id, val));
 }
 
-int program::parseReturnStatement() {
+Statement *program::parseReturnStatement() {
   if (peekToken().tokenType != INT) {
     cout << "Parsing Error: Expected INT. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
   string val = currToken().lexeme;
@@ -183,45 +207,46 @@ int program::parseReturnStatement() {
   if (peekToken().tokenType != SEMICOLON) {
     cout << "Parsing Error: Expected SEMICOLON. Got "
          << getTokenStr[peekToken().tokenType];
-    return -1;
+    return NULL;
   }
   GetNextToken();
 
-  statements.push_back((Statement)ReturnStatement(val));
-  return 0;
+  return (Statement *)(new ReturnStatement(val));
 }
 
-int program::parseExpressionStatement() {
+Statement *program::parseExpressionStatement() {
   Expression *e = parseExpression(LOWEST);
   if (peekToken().tokenType == SEMICOLON) {
     GetNextToken();
   }
-  Statement s = ExpressionStatement("0", e);
-  statements.push_back(s);
-  return 0;
+  return (Statement *)(new ExpressionStatement("0", e));
 }
 
-void printProgram(program &p) {
-  for (auto &statement : p.statements) {
-    cout << statement.type << endl;
+Statement *program ::parseStatement() {
+  if (currToken().tokenType == LET) {
+    return parseLetStatement();
+  } else if (currToken().tokenType == RETURN) {
+    return parseReturnStatement();
+  } else {
+    return parseExpressionStatement();
   }
 }
 
-int program::parseStatement() {
+void program::parseProgram() {
   while (currToken().tokenType != EOFL) {
-    if (currToken().tokenType == LET) {
-      if (parseLetStatement() == -1)
-        return -1;
-    } else if (currToken().tokenType == RETURN) {
-      if (parseReturnStatement() == -1)
-        return -1;
-    } else {
-      parseExpressionStatement();
-    }
+    statements.push_back(parseStatement());
     GetNextToken();
   }
-  // printProgram(p);
-  return 0;
+}
+
+BlockStatement *program::parseBlockStatement() {
+  BlockStatement *block = new BlockStatement(currToken().tokenType);
+  GetNextToken();
+  while (currToken().tokenType != RBRACE && currToken().tokenType != EOFL) {
+    block->statements.push_back(parseStatement());
+    GetNextToken();
+  }
+  return block;
 }
 
 Expression *program::parseExpression(int precedence) {
@@ -264,6 +289,30 @@ Expression *program::parseGroupedExpression() {
   return exp;
 }
 
+Expression *program::parseIfExpression() {
+  Expression *node = new IfExpression(currToken().tokenType, NULL, NULL, NULL);
+  if (peekToken().tokenType != LPAREN) {
+    cout << "Parsing Error: Expected LPAREN. Got "
+         << getTokenStr[peekToken().tokenType] << endl;
+  }
+  GetNextToken();
+
+  node->cond = parseExpression(LOWEST);
+  if (currToken().tokenType != RPAREN) {
+    cout << "Parsing Error: Expected RPAREN. Got "
+         << getTokenStr[peekToken().tokenType] << endl;
+  }
+  GetNextToken();
+
+  if (currToken().tokenType != LBRACE) {
+    cout << "Parsing Error: Expected LBRACE. Got "
+         << getTokenStr[peekToken().tokenType] << endl;
+  }
+
+  node->conseq = parseBlockStatement();
+  return node;
+}
+
 Expression *program::parseInfixFn(Expression *exp) {
   switch (currToken().tokenType) {
   case GT:
@@ -294,6 +343,9 @@ Expression *program::parseInfixFn(Expression *exp) {
 
 Expression *program::parsePrefixFn(tokentype type) {
   switch (type) {
+  case IF:
+    return parseIfExpression();
+
   case IDENT:
     return parseIdentifer();
 
@@ -347,7 +399,6 @@ int main(int argc, char *argv[]) {
 
   program p;
   p.tokens = tokens;
-  p.parseStatement();
-
+  p.parseProgram();
   return 0;
 }
