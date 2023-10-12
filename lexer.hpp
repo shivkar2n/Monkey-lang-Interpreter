@@ -43,15 +43,6 @@ public:
   string lexeme;
 };
 
-token GetNextToken(vector<token> &tokens) {
-  token temp = tokens[0];
-  tokens.erase(tokens.begin());
-  return temp;
-}
-
-token currToken(vector<token> &t) { return t[0]; }
-
-token peekToken(vector<token> &t) { return t[1]; }
 
 unordered_map<string, tokentype> keywords = {
     {"let", LET},   {"fn", FUNCTION}, {"if", IF},        {"else", ELSE},

@@ -12,18 +12,6 @@ unordered_map<tokentype, precedence> tokenPrecedence = {
     //
 };
 
-int currPrecedence(vector<token> &tokens) {
-  return tokenPrecedence[currToken(tokens).tokenType];
-}
-
-int peekPrecedence(vector<token> &tokens) {
-  return tokenPrecedence[peekToken(tokens).tokenType];
-}
-
-string currTokenLiteral(vector<token> &tokens) {
-  return getTokenStr[currToken(tokens).tokenType];
-}
-
 // Expresson can be of type: INFIX | PREFIX | IDENTIFIER | LITERAL | BOOLEAN
 enum expressionType { ID, LITERAL, PRE, IN, BOOL };
 
@@ -80,130 +68,6 @@ public:
       : Expression(BOOL, tokenType, "", "", val, NULL, NULL) {}
 };
 
-Expression *parseExpression(vector<token> &tokens, int precedence);
-Expression *parseInfixExpression(vector<token> &tokens, Expression *exp);
-Expression *parsePrefixExpression(vector<token> &tokens);
-Expression *parseInfixFn(vector<token> &tokens, Expression *exp);
-Expression *parsePrefixFn(vector<token> &tokens, tokentype tokenType);
-
-Expression *parseIdentifer(vector<token> &tokens);
-Expression *parseIntegerLiteral(vector<token> &tokens);
-Expression *parseBoolean(vector<token> &tokens);
-
-Expression *parseExpression(vector<token> &tokens, int precedence) {
-  Expression *leftExp = parsePrefixFn(tokens, currToken(tokens).tokenType);
-  if (leftExp == NULL) {
-    cout << "Parsing Error: No prefix function called!!" << endl;
-    return NULL;
-  }
-  while (currToken(tokens).tokenType != SEMICOLON &&
-         precedence < peekPrecedence(tokens)) {
-    GetNextToken(tokens);
-    leftExp = parseInfixFn(tokens, leftExp);
-  }
-  return leftExp;
-}
-
-Expression *parseInfixExpression(vector<token> &tokens, Expression *exp) {
-  Expression *node = new InfixExpression(currToken(tokens).tokenType,
-                                         currToken(tokens).lexeme, exp, NULL);
-  GetNextToken(tokens);
-  node->right = parseExpression(tokens, currPrecedence(tokens));
-  return node;
-}
-
-Expression *parsePrefixExpression(vector<token> &tokens) {
-  Expression *node = new PrefixExpression(currToken(tokens).tokenType,
-                                          currToken(tokens).lexeme, NULL);
-  GetNextToken(tokens);
-  node->right = parseExpression(tokens, PREFIX);
-  return node;
-}
-
-Expression *parseGroupedExpression(vector<token> &tokens) {
-  GetNextToken(tokens);
-  Expression *exp = parseExpression(tokens, LOWEST);
-  if (peekToken(tokens).tokenType != RPAREN) {
-    cout << "Parsing Error: Expected RPAREN. Got "
-         << getTokenStr[peekToken(tokens).tokenType] << endl;
-  }
-  GetNextToken(tokens);
-  return exp;
-}
-
-Expression *parseInfixFn(vector<token> &tokens, Expression *exp) {
-  switch (currToken(tokens).tokenType) {
-  case GT:
-    return parseInfixExpression(tokens, exp);
-
-  case LT:
-    return parseInfixExpression(tokens, exp);
-
-  case NOT_EQUAL:
-    return parseInfixExpression(tokens, exp);
-
-  case EQUAL:
-    return parseInfixExpression(tokens, exp);
-
-  case PLUS:
-    return parseInfixExpression(tokens, exp);
-
-  case MINUS:
-    return parseInfixExpression(tokens, exp);
-
-  case DIVIDE:
-    return parseInfixExpression(tokens, exp);
-
-  case MULTIPLY:
-    return parseInfixExpression(tokens, exp);
-
-  default:
-    return NULL;
-  }
-}
-
-Expression *parsePrefixFn(vector<token> &tokens, tokentype type) {
-  switch (type) {
-  case IDENT:
-    return parseIdentifer(tokens);
-
-  case INT:
-    return parseIntegerLiteral(tokens);
-
-  case MINUS:
-    return parsePrefixExpression(tokens);
-
-  case BANG:
-    return parsePrefixExpression(tokens);
-
-  case TRUE:
-    return parseBoolean(tokens);
-
-  case FALSE:
-    return parseBoolean(tokens);
-
-  case LPAREN:
-    return parseGroupedExpression(tokens);
-
-  default:
-    return NULL;
-  }
-}
-
-Expression *parseIdentifer(vector<token> &tokens) {
-  return new Identifier(currToken(tokens).tokenType, currToken(tokens).lexeme);
-}
-
-Expression *parseIntegerLiteral(vector<token> &tokens) {
-  return new Literal(currToken(tokens).tokenType,
-                     stoi(currToken(tokens).lexeme));
-}
-
-Expression *parseBoolean(vector<token> &tokens) {
-  return new Boolean(currToken(tokens).tokenType,
-                     currToken(tokens).lexeme == "true");
-}
-
 class Statement {
 public:
   string type;
@@ -239,72 +103,101 @@ public:
 class program {
 public:
   vector<Statement> statements;
+  vector<token> tokens;
+
+  token GetNextToken() {
+    token temp = tokens[0];
+    tokens.erase(tokens.begin());
+    return temp;
+  }
+  token currToken() { return tokens[0]; }
+  token peekToken() { return tokens[1]; }
+
+  int currPrecedence() { return tokenPrecedence[currToken().tokenType]; }
+  int peekPrecedence() { return tokenPrecedence[peekToken().tokenType]; }
+  string currTokenLiteral() { return getTokenStr[currToken().tokenType]; }
+
+  int parseStatement();
+  int parseReturnStatement();
+  int parseLetStatement();
+  int parseExpressionStatement();
+
+  Expression *parseExpression(int precedence);
+  Expression *parseInfixExpression(Expression *exp);
+  Expression *parsePrefixExpression();
+  Expression *parseGroupedExpression();
+  Expression *parseInfixFn(Expression *exp);
+  Expression *parsePrefixFn(tokentype tokenType);
+
+  Expression *parseIdentifer();
+  Expression *parseIntegerLiteral();
+  Expression *parseBoolean();
 };
 
-int parseLetStatement(program &p, vector<token> &t) {
-  if (peekToken(t).tokenType != IDENT) {
+int program ::parseLetStatement() {
+  if (peekToken().tokenType != IDENT) {
     cout << "Parsing Error: Expected IDENT. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
-  string id = currToken(t).lexeme;
+  GetNextToken();
+  string id = currToken().lexeme;
 
-  if (peekToken(t).tokenType != ASSIGN) {
+  if (peekToken().tokenType != ASSIGN) {
     cout << "Parsing Error: Expected ASSIGN. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
+  GetNextToken();
 
-  if (peekToken(t).tokenType != INT) {
+  if (peekToken().tokenType != INT) {
     cout << "Parsing Error: Expected INT. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
-  string val = currToken(t).lexeme;
+  GetNextToken();
+  string val = currToken().lexeme;
   // parseExpression();
 
-  if (peekToken(t).tokenType != SEMICOLON) {
+  if (peekToken().tokenType != SEMICOLON) {
     cout << "Parsing Error: Expected SEMICOLON. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
+  GetNextToken();
 
-  p.statements.push_back((Statement)LetStatement(id, val));
+  statements.push_back((Statement)LetStatement(id, val));
   return 0;
 }
 
-int parseReturnStatement(program &p, vector<token> t) {
-  if (peekToken(t).tokenType != INT) {
+int program::parseReturnStatement() {
+  if (peekToken().tokenType != INT) {
     cout << "Parsing Error: Expected INT. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
-  string val = currToken(t).lexeme;
+  GetNextToken();
+  string val = currToken().lexeme;
   // parseExpression();
 
-  if (peekToken(t).tokenType != SEMICOLON) {
+  if (peekToken().tokenType != SEMICOLON) {
     cout << "Parsing Error: Expected SEMICOLON. Got "
-         << getTokenStr[peekToken(t).tokenType];
+         << getTokenStr[peekToken().tokenType];
     return -1;
   }
-  GetNextToken(t);
+  GetNextToken();
 
-  p.statements.push_back((Statement)ReturnStatement(val));
+  statements.push_back((Statement)ReturnStatement(val));
   return 0;
 }
 
-int parseExpressionStatement(program &p, vector<token> &t) {
-  Expression *e = parseExpression(t, LOWEST);
-  if (peekToken(t).tokenType == SEMICOLON) {
-    GetNextToken(t);
+int program::parseExpressionStatement() {
+  Expression *e = parseExpression(LOWEST);
+  if (peekToken().tokenType == SEMICOLON) {
+    GetNextToken();
   }
   Statement s = ExpressionStatement("0", e);
-  p.statements.push_back(s);
+  statements.push_back(s);
   return 0;
 }
 
@@ -314,21 +207,129 @@ void printProgram(program &p) {
   }
 }
 
-int parseStatement(program &p, vector<token> &t) {
-  while (currToken(t).tokenType != EOFL) {
-    if (currToken(t).tokenType == LET) {
-      if (parseLetStatement(p, t) == -1)
+int program::parseStatement() {
+  while (currToken().tokenType != EOFL) {
+    if (currToken().tokenType == LET) {
+      if (parseLetStatement() == -1)
         return -1;
-    } else if (currToken(t).tokenType == RETURN) {
-      if (parseReturnStatement(p, t) == -1)
+    } else if (currToken().tokenType == RETURN) {
+      if (parseReturnStatement() == -1)
         return -1;
     } else {
-      parseExpressionStatement(p, t);
+      parseExpressionStatement();
     }
-    GetNextToken(t);
+    GetNextToken();
   }
   // printProgram(p);
   return 0;
+}
+
+Expression *program::parseExpression(int precedence) {
+  Expression *leftExp = parsePrefixFn(currToken().tokenType);
+  if (leftExp == NULL) {
+    cout << "Parsing Error: No prefix function called!!" << endl;
+    return NULL;
+  }
+  while (currToken().tokenType != SEMICOLON && precedence < peekPrecedence()) {
+    GetNextToken();
+    leftExp = parseInfixFn(leftExp);
+  }
+  return leftExp;
+}
+
+Expression *program::parseInfixExpression(Expression *exp) {
+  Expression *node =
+      new InfixExpression(currToken().tokenType, currToken().lexeme, exp, NULL);
+  GetNextToken();
+  node->right = parseExpression(currPrecedence());
+  return node;
+}
+
+Expression *program::parsePrefixExpression() {
+  Expression *node =
+      new PrefixExpression(currToken().tokenType, currToken().lexeme, NULL);
+  GetNextToken();
+  node->right = parseExpression(PREFIX);
+  return node;
+}
+
+Expression *program::parseGroupedExpression() {
+  GetNextToken();
+  Expression *exp = parseExpression(LOWEST);
+  if (peekToken().tokenType != RPAREN) {
+    cout << "Parsing Error: Expected RPAREN. Got "
+         << getTokenStr[peekToken().tokenType] << endl;
+  }
+  GetNextToken();
+  return exp;
+}
+
+Expression *program::parseInfixFn(Expression *exp) {
+  switch (currToken().tokenType) {
+  case GT:
+    return parseInfixExpression(exp);
+
+  case LT:
+    return parseInfixExpression(exp);
+
+  case NOT_EQUAL:
+    return parseInfixExpression(exp);
+
+  case EQUAL:
+    return parseInfixExpression(exp);
+
+  case PLUS:
+    return parseInfixExpression(exp);
+
+  case DIVIDE:
+    return parseInfixExpression(exp);
+
+  case MULTIPLY:
+    return parseInfixExpression(exp);
+
+  default:
+    return NULL;
+  }
+}
+
+Expression *program::parsePrefixFn(tokentype type) {
+  switch (type) {
+  case IDENT:
+    return parseIdentifer();
+
+  case INT:
+    return parseIntegerLiteral();
+
+  case MINUS:
+    return parsePrefixExpression();
+
+  case BANG:
+    return parsePrefixExpression();
+
+  case TRUE:
+    return parseBoolean();
+
+  case FALSE:
+    return parseBoolean();
+
+  case LPAREN:
+    return parseGroupedExpression();
+
+  default:
+    return NULL;
+  }
+}
+
+Expression *program::parseIdentifer() {
+  return new Identifier(currToken().tokenType, currToken().lexeme);
+}
+
+Expression *program::parseIntegerLiteral() {
+  return new Literal(currToken().tokenType, stoi(currToken().lexeme));
+}
+
+Expression *program::parseBoolean() {
+  return new Boolean(currToken().tokenType, currToken().lexeme == "true");
 }
 
 int main(int argc, char *argv[]) {
@@ -345,7 +346,8 @@ int main(int argc, char *argv[]) {
   }
 
   program p;
-  parseStatement(p, tokens);
+  p.tokens = tokens;
+  p.parseStatement();
 
   return 0;
 }
