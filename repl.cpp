@@ -1,6 +1,4 @@
-#include "lexer.hpp"
-#include <iostream>
-#include <string>
+#include "parser.cpp"
 using namespace std;
 
 int main(int argc, char const *argv[]) {
@@ -10,14 +8,9 @@ int main(int argc, char const *argv[]) {
   while (line != "") {
     cout << PROMPT;
     getline(cin, line);
-    vector<token> P;
-    if (parseTokens(line, P) == -1) {
-      cout << "Error: Unable to parse tokens";
-    } else {
-      for (auto &i : P) {
-        cout << i.tokenType << " " << i.lexeme << endl;
-      }
-    }
+    program p;
+    p.parseProgram(line);
+    cout << line << endl;
   }
   return 0;
 }

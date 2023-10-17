@@ -43,7 +43,6 @@ public:
   string lexeme;
 };
 
-
 unordered_map<string, tokentype> keywords = {
     {"let", LET},   {"fn", FUNCTION}, {"if", IF},        {"else", ELSE},
     {"true", TRUE}, {"false", FALSE}, {"return", RETURN}};
@@ -76,7 +75,8 @@ unordered_map<tokentype, string> getTokenStr = {{LET, "LET"},
                                                 {ILLEGAL, "ILLEGAL"},
                                                 {EOFL, "EOF"}};
 
-int parseTokens(string code, vector<token> &M) {
+vector<token> parseTokens(string code) {
+  vector<token> M;
   int i = 0;
   while (i < code.size()) {
     // Delimiters
@@ -136,7 +136,7 @@ int parseTokens(string code, vector<token> &M) {
       while (isdigit(code[i]))
         a += code[i], i++;
       if (isalpha(code[i]))
-        return -1;
+        return {};
       M.push_back({INT, a});
 
       // Identifiers
@@ -156,14 +156,15 @@ int parseTokens(string code, vector<token> &M) {
       i++;
     } else {
       M.push_back({ILLEGAL, code.substr(i, 1)});
-      return -1;
+      return {};
     }
   }
   M.push_back({EOFL, "eof"});
-  return 0;
+  return M;
 }
 
-int parseFile(string &data) {
+string parseFile() {
+string data;
   ifstream file;
   file.open("sample.mon");
 
@@ -174,7 +175,7 @@ int parseFile(string &data) {
     }
   } else {
     cout << "Couldn't open file\n";
-    return -1;
+    return "";
   }
-  return 0;
+  return data;
 }
