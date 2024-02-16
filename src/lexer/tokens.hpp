@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-enum Tokentype {
+enum TokenType {
   // Keywords
   LET,
   FUNCTION,
@@ -43,15 +43,15 @@ enum Tokentype {
 
 class Token {
 public:
-  Tokentype tokenType;
+  TokenType tokenType;
   std::string lexeme;
 };
 
-std::unordered_map<std::string, Tokentype> keywords = {
+std::unordered_map<std::string, TokenType> keywords = {
     {"let", LET},   {"fn", FUNCTION}, {"if", IF},        {"else", ELSE},
     {"true", TRUE}, {"false", FALSE}, {"return", RETURN}};
 
-std::unordered_map<Tokentype, std::string> getTokenStr = {
+std::unordered_map<TokenType, std::string> getTokenStr = {
     {LET, "LET"},
     {FUNCTION, "FUNCTION"},
     {RETURN, "RETURN"},

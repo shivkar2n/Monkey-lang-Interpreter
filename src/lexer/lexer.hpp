@@ -1,6 +1,8 @@
 #include "tokens.hpp"
 #include <vector>
 
+#if !defined(LEXER_LEXER_HPP)
+#define LEXER_LEXER_HPP
 class Lexer {
 public:
   std::vector<Token> parse_tokens(std::string line);
@@ -93,3 +95,5 @@ std::vector<Token> Lexer::parse_tokens(std::string line) {
   tokenStream.push_back({EOFL, "eof"});
   return tokenStream;
 }
+
+#endif // LEXER_LEXER_HPP
