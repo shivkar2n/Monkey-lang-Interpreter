@@ -192,7 +192,10 @@ public:
   TokenType tokenType;
   std::vector<Statement *> statements;
 
-  BlockStatement(TokenType tokenType) { this->tokenType = tokenType; }
+  BlockStatement(TokenType tokenType) {
+    this->type = BLOCKSTAT;
+    this->tokenType = tokenType;
+  }
 };
 
 #endif
