@@ -1,4 +1,4 @@
-enum ObjectType { INTEGER, BOOLEAN, NULLVAL };
+enum ObjectType { INTEGER, BOOLEAN, NULLVAL, RETURNVAL };
 
 class Object {
 public:
@@ -26,4 +26,14 @@ public:
 class NullLiteral : Object {
 public:
   NullLiteral() { this->type = NULLVAL; }
+};
+
+class ReturnLiteral : Object {
+  int value;
+
+public:
+  ReturnLiteral(int value) {
+    this->type = RETURNVAL;
+    this->value = value;
+  }
 };

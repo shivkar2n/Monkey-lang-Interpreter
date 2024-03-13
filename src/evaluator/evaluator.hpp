@@ -4,7 +4,7 @@
 
 class Evaluator {
 public:
-  Object *eval_statements(std::vector<Statement *> statements);
+  Object *eval_program(std::vector<Statement *> statements);
   Object *eval(AstNode *node);
   Object *eval_prefix_expression(AstNode *node, Object *right);
   Object *eval_infix_expression(AstNode *node, Object *left, Object *right);
@@ -14,10 +14,11 @@ public:
   Object *eval_boolean_infix_operator(AstNode *node, Object *left,
                                       Object *right);
   Object *eval_minus_operator(Object *right);
+  Object *eval_block_statements(std::vector<Statement *> statements);
   bool is_truthy(Object *condition);
 };
 
-Object *Evaluator::eval_statements(std::vector<Statement *> statements) {
+Object *Evaluator::eval_program(std::vector<Statement *> statements) {
   Object *result;
   for (auto statement : statements) {
     auto statementNode = (AstNode *)statement;
@@ -26,7 +27,7 @@ Object *Evaluator::eval_statements(std::vector<Statement *> statements) {
       break;
 
     case RETURNSTAT:
-      break;
+      return eval(((ReturnStatement *)statementNode)->val);
 
     case EXPRSTAT:
       result = eval(((ExpressionStatement *)statementNode)->exp);
@@ -133,7 +134,7 @@ Object *Evaluator::eval(AstNode *node) {
   switch (node->nodeType) {
   case PROGRAM: {
     auto programNode = (Program *)node;
-    return eval_statements(programNode->statements);
+    return eval_program(programNode->statements);
   }
 
   case EXPRESSION: {
@@ -184,11 +185,36 @@ Object *Evaluator::eval(AstNode *node) {
     switch (statementNode->type) {
     case BLOCKSTAT: {
       auto statements = ((BlockStatement *)statementNode)->statements;
-      return eval_statements(statements);
+      return eval_block_statements(statements);
+    }
+
+    case RETURNSTAT: {
+      auto returnStatement = ((ReturnStatement *)statementNode)->val;
+      auto value = ((IntegerLiteral *)returnStatement)->value;
+      return (Object *)(new ReturnLiteral(value));
     }
     }
   }
   }
+}
+
+Object *Evaluator::eval_block_statements(std::vector<Statement *> statements) {
+  Object *result;
+  for (auto statement : statements) {
+    auto statementNode = (AstNode *)statement;
+    switch (statement->type) {
+    case LETSTAT:
+      break;
+
+    case RETURNSTAT:
+      return eval(((ReturnStatement *)statementNode)->val);
+
+    case EXPRSTAT:
+      result = eval(((ExpressionStatement *)statementNode)->exp);
+      break;
+    }
+  }
+  return result;
 }
 
 bool Evaluator ::is_truthy(Object *condition) {
