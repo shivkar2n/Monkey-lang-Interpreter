@@ -16,7 +16,7 @@ public:
   int curr_precedence() { return tokenPrecedence[curr_token().tokenType]; }
   int peek_predence() { return tokenPrecedence[peek_token().tokenType]; }
   std::string curr_tokenInteger() {
-    return getTokenStr[curr_token().tokenType];
+    return get_token_string[curr_token().tokenType];
   }
 
   Statement *parse_statement();
@@ -48,26 +48,26 @@ public:
 
 LetStatement *Parser ::parse_let_statement() {
   if (peek_token().tokenType != IDENT) {
-    std::cout << "Parsing Error: Expected IDENT. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected IDENT. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
   Expression *id = new Identifier(IDENT, curr_token().lexeme);
 
   if (peek_token().tokenType != ASSIGN) {
-    std::cout << "Parsing Error: Expected ASSIGN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected ASSIGN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
   get_next_token();
   Expression *val = parse_expression(LOWEST);
 
   if (peek_token().tokenType != SEMICOLON) {
-    std::cout << "Parsing Error: Expected SEMICOLON. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected SEMICOLON. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
 
@@ -75,18 +75,13 @@ LetStatement *Parser ::parse_let_statement() {
 }
 
 ReturnStatement *Parser::parse_return_statement() {
-  // if (peek_token().tokenType != INT) {
-  //  std::cout << "Parsing Error: Expected INT. Got "
-  //        << getTokenStr[peek_token().tokenType] << "\n";
-  //   return NULL;
-  // }
   get_next_token();
   auto stmt = new ReturnStatement(parse_expression(LOWEST));
 
   if (peek_token().tokenType != SEMICOLON) {
-    std::cout << "Parsing Error: Expected SEMICOLON. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected SEMICOLON. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
 
@@ -134,9 +129,8 @@ BlockStatement *Parser::parse_block_statement() {
 Expression *Parser::parse_expression(int Predence) {
   Expression *leftExp = parse_prefix_function(curr_token().tokenType);
   if (leftExp == NULL) {
-    std::cout << "Parsing Error: No prefix function called!!"
-              << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: No prefix function called!!";
+    throw msg;
   }
   while (peek_token().tokenType != SEMICOLON && Predence < peek_predence()) {
     get_next_token();
@@ -166,8 +160,9 @@ Expression *Parser::parse_group_expression() {
   get_next_token();
   Expression *exp = parse_expression(LOWEST);
   if (peek_token().tokenType != RPAREN) {
-    std::cout << "Parsing Error: Expected RPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
+    std::string msg = "Parsing Error: Expected RPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
   return exp;
@@ -177,22 +172,25 @@ IfExpression *Parser::parse_if_expression() {
   IfExpression *node =
       new IfExpression(curr_token().tokenType, NULL, NULL, NULL);
   if (peek_token().tokenType != LPAREN) {
-    std::cout << "Parsing Error: Expected LPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
+    std::string msg = "Parsing Error: Expected LPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
   get_next_token();
 
   node->cond = parse_expression(LOWEST);
   if (peek_token().tokenType != RPAREN) {
-    std::cout << "Parsing Error: Expected RPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
+    std::string msg = "Parsing Error: Expected RPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
 
   get_next_token();
   if (peek_token().tokenType != LBRACE) {
-    std::cout << "Parsing Error: Expected LBRACE. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
+    std::string msg = "Parsing Error: Expected LBRACE. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
 
   get_next_token();
@@ -202,9 +200,9 @@ IfExpression *Parser::parse_if_expression() {
   if (curr_token().tokenType == ELSE) {
     get_next_token();
     if (curr_token().tokenType != LBRACE) {
-      std::cout << "Parsing Error: Expected LBRACE. Got "
-                << getTokenStr[peek_token().tokenType] << "\n";
-      return NULL;
+      std::string msg = "Parsing Error: Expected LBRACE. Got " +
+                        get_token_string[peek_token().tokenType];
+      throw msg;
     }
     node->altern = parse_block_statement();
   }
@@ -214,17 +212,17 @@ IfExpression *Parser::parse_if_expression() {
 FunctionLiteral *Parser::parse_function_literal() {
   FunctionLiteral *lit = new FunctionLiteral(curr_token().tokenType);
   if (peek_token().tokenType != LPAREN) {
-    std::cout << "Parsing Error: Expected LPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected LPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
 
   lit->parameters = parse_function_parameters();
   if (peek_token().tokenType != LBRACE) {
-    std::cout << "Parsing Error: Expected LBRACE. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return NULL;
+    std::string msg = "Parsing Error: Expected LBRACE. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
 
@@ -252,9 +250,9 @@ std::vector<Identifier *> Parser::parse_function_parameters() {
   }
 
   if (peek_token().tokenType != RPAREN) {
-    std::cout << "Parsing Error: Expected RPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
-    return {};
+    std::string msg = "Parsing Error: Expected RPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
+    throw msg;
   }
   get_next_token();
   return id;
@@ -282,8 +280,8 @@ std::vector<Expression *> Parser::parseCallArguements() {
   }
 
   if (peek_token().tokenType != RPAREN) {
-    std::cout << "Parsing Error: Expected RPAREN. Got "
-              << getTokenStr[peek_token().tokenType] << "\n";
+    std::string msg = "Parsing Error: Expected RPAREN. Got " +
+                      get_token_string[peek_token().tokenType];
     return {};
   }
   get_next_token();
@@ -341,7 +339,6 @@ Expression *Parser::parse_prefix_function(TokenType type) {
     return parse_integer_literal();
 
   case MINUS:
-    // std::cout << "MINUS prefix";
     return parse_prefix_expression();
 
   case BANG:

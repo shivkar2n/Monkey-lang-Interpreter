@@ -10,9 +10,8 @@ int main(int argc, char const *argv[]) {
       std::getline(std::cin, line);
       Interpreter interpreter;
       interpreter.run(line);
-      std::cout << line << '\n';
-    } catch (const std::exception &e) {
-      std::cerr << e.what() << '\n';
+    } catch (std ::string msg) {
+      std::cerr << msg << '\n';
     }
   }
   return 0;

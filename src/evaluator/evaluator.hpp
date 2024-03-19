@@ -21,17 +21,25 @@ public:
 Object *Evaluator::eval_program(std::vector<Statement *> statements) {
   Object *result;
   for (auto statement : statements) {
-    auto statementNode = (AstNode *)statement;
     switch (statement->type) {
     case LETSTAT:
       break;
 
-    case RETURNSTAT:
-      return eval(((ReturnStatement *)statementNode)->val);
+    case RETURNSTAT: {
+      auto value = eval(((ReturnStatement *)statement)->val);
+      return (Object *)new ReturnLiteral(value);
+    }
 
-    case EXPRSTAT:
-      result = eval(((ExpressionStatement *)statementNode)->exp);
+    case EXPRSTAT: {
+      result = eval(((ExpressionStatement *)statement)->exp);
       break;
+    }
+    }
+
+    if (result != NULL) {
+      if (result->type == ERROR || result->type == RETURNVAL) {
+        return result;
+      }
     }
   }
   return result;
@@ -45,6 +53,11 @@ Object *Evaluator::eval_prefix_expression(AstNode *node, Object *right) {
 
   } else if (op == "-") {
     return eval_minus_operator(right);
+
+  } else {
+    int value = (((IntegerLiteral *)(right))->value);
+    std::string msg = "Unknown operator: " + op + " " + std::to_string(value);
+    return (Object *)new Error(msg);
   }
 }
 
@@ -56,6 +69,12 @@ Object *Evaluator::eval_infix_expression(AstNode *node, Object *left,
 
   } else if (left->type == BOOLEAN && right->type == BOOLEAN) {
     return eval_boolean_infix_operator(node, left, right);
+
+  } else if (left->type != right->type) {
+    auto leftType = left->get_type();
+    auto rightType = right->get_type();
+    std::string msg = "Type Mismatch: " + leftType + " " + rightType;
+    return (Object *)new Error(msg);
   }
 }
 
@@ -93,7 +112,8 @@ Object *Evaluator::eval_integer_infix_operator(AstNode *node, Object *left,
     return (Object *)new BooleanLiteral(((Boolean *)node)->value =
                                             (leftValue != rightValue));
   } else {
-    return (Object *)new NullLiteral();
+    std::string msg = "Unknown operator: " + op + "\n";
+    return (Object *)new Error(msg);
   }
 }
 
@@ -110,6 +130,9 @@ Object *Evaluator::eval_boolean_infix_operator(AstNode *node, Object *left,
   } else if (op == "!=") {
     return (Object *)new BooleanLiteral(((Boolean *)node)->value =
                                             (leftValue != rightValue));
+  } else {
+    std::string msg = "Unknown operator: " + op + "\n";
+    return (Object *)new Error(msg);
   }
 }
 
@@ -126,6 +149,10 @@ Object *Evaluator ::eval_boolean_operator(Object *right) {
 }
 
 Object *Evaluator ::eval_minus_operator(Object *right) {
+  if (right->type != INTEGER) {
+    std::string msg = "Unknown operator: -" + right->get_type() + "\n";
+    return (Object *)new Error(msg);
+  }
   int value = (((IntegerLiteral *)(right))->value);
   return (Object *)new IntegerLiteral(-value);
 }
@@ -152,20 +179,31 @@ Object *Evaluator::eval(AstNode *node) {
     case PREFIXEXPR: {
       auto expr = (((Expression *)(node))->right);
       auto right = eval(expr);
+      if (is_error(right))
+        return right;
       return eval_prefix_expression(node, right);
     }
 
     case INFIXEXPR: {
       auto expr = (((Expression *)(node))->left);
       auto left = eval(expr);
+      if (is_error(left))
+        return left;
+
       expr = (((Expression *)(node))->right);
       auto right = eval(expr);
+      if (is_error(right))
+        return right;
+
       return eval_infix_expression(node, left, right);
     }
 
     case IFEXPR: {
       auto expr = (IfExpression *)node;
       auto condition = eval(expr->cond);
+
+      if (is_error(condition))
+        return condition;
 
       if (is_truthy(condition)) {
         return eval(expr->conseq);
@@ -189,9 +227,12 @@ Object *Evaluator::eval(AstNode *node) {
     }
 
     case RETURNSTAT: {
-      auto returnStatement = ((ReturnStatement *)statementNode)->val;
-      auto value = ((IntegerLiteral *)returnStatement)->value;
-      return (Object *)(new ReturnLiteral(value));
+      auto valueExpression = ((ReturnStatement *)statementNode)->val;
+      auto value = eval(valueExpression);
+      if (is_error(value))
+        return value;
+
+      return (Object *)new ReturnLiteral(value);
     }
     }
   }
@@ -199,19 +240,28 @@ Object *Evaluator::eval(AstNode *node) {
 }
 
 Object *Evaluator::eval_block_statements(std::vector<Statement *> statements) {
-  Object *result;
+  Object *result = NULL;
   for (auto statement : statements) {
     auto statementNode = (AstNode *)statement;
     switch (statement->type) {
     case LETSTAT:
       break;
 
-    case RETURNSTAT:
-      return eval(((ReturnStatement *)statementNode)->val);
+    case RETURNSTAT: {
+      auto value = eval(((ReturnStatement *)statementNode)->val);
+      return (Object *)new ReturnLiteral(value);
+    }
 
-    case EXPRSTAT:
+    case EXPRSTAT: {
       result = eval(((ExpressionStatement *)statementNode)->exp);
       break;
+    }
+    }
+
+    if (result != NULL) {
+      if (result->type == ERROR || result->type == RETURNVAL) {
+        return result;
+      }
     }
   }
   return result;

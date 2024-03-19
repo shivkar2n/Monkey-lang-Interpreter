@@ -51,7 +51,7 @@ std::unordered_map<std::string, TokenType> keywords = {
     {"let", LET},   {"fn", FUNCTION}, {"if", IF},        {"else", ELSE},
     {"true", TRUE}, {"false", FALSE}, {"return", RETURN}};
 
-std::unordered_map<TokenType, std::string> getTokenStr = {
+std::unordered_map<TokenType, std::string> get_token_string = {
     {LET, "LET"},
     {FUNCTION, "FUNCTION"},
     {RETURN, "RETURN"},
