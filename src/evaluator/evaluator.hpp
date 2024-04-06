@@ -1,11 +1,12 @@
 #include "../parser/ast.hpp"
+#include "environment.hpp"
 #include "object.hpp"
 #include <iostream>
 
 class Evaluator {
 public:
-  Object *eval_program(std::vector<Statement *> statements);
-  Object *eval(AstNode *node);
+  Object *eval_program(std::vector<Statement *> statements, Environment *env);
+  Object *eval(AstNode *node, Environment *env);
   Object *eval_prefix_expression(AstNode *node, Object *right);
   Object *eval_infix_expression(AstNode *node, Object *left, Object *right);
   Object *eval_integer_infix_operator(AstNode *node, Object *left,
@@ -14,24 +15,26 @@ public:
   Object *eval_boolean_infix_operator(AstNode *node, Object *left,
                                       Object *right);
   Object *eval_minus_operator(Object *right);
-  Object *eval_block_statements(std::vector<Statement *> statements);
+  Object *eval_block_statements(std::vector<Statement *> statements,
+                                Environment *env);
   bool is_truthy(Object *condition);
 };
 
-Object *Evaluator::eval_program(std::vector<Statement *> statements) {
+Object *Evaluator::eval_program(std::vector<Statement *> statements,
+                                Environment *env) {
   Object *result;
   for (auto statement : statements) {
     switch (statement->type) {
-    case LETSTAT:
-      break;
+    case LETSTATEMENT:
+      return eval(statement, env);
 
-    case RETURNSTAT: {
-      auto value = eval(((ReturnStatement *)statement)->val);
+    case RETURNSTATEMENT: {
+      auto value = eval(((ReturnStatement *)statement)->val, env);
       return (Object *)new ReturnLiteral(value);
     }
 
-    case EXPRSTAT: {
-      result = eval(((ExpressionStatement *)statement)->exp);
+    case EXPRSTATEMENT: {
+      result = eval(((ExpressionStatement *)statement)->exp, env);
       break;
     }
     }
@@ -157,16 +160,21 @@ Object *Evaluator ::eval_minus_operator(Object *right) {
   return (Object *)new IntegerLiteral(-value);
 }
 
-Object *Evaluator::eval(AstNode *node) {
+Object *Evaluator::eval(AstNode *node, Environment *env) {
   switch (node->nodeType) {
   case PROGRAM: {
     auto programNode = (Program *)node;
-    return eval_program(programNode->statements);
+    return eval_program(programNode->statements, env);
   }
 
   case EXPRESSION: {
     Expression *exprNode = (Expression *)node;
     switch (exprNode->expressionType) {
+
+    case IDENTIFIEREXPR: {
+      auto id = ((Identifier *)node)->id;
+      return env->get(id);
+    }
 
     case BOOLEXPR: {
       return (Object *)new BooleanLiteral(((Boolean *)exprNode)->value);
@@ -178,7 +186,7 @@ Object *Evaluator::eval(AstNode *node) {
 
     case PREFIXEXPR: {
       auto expr = (((Expression *)(node))->right);
-      auto right = eval(expr);
+      auto right = eval(expr, env);
       if (is_error(right))
         return right;
       return eval_prefix_expression(node, right);
@@ -186,12 +194,12 @@ Object *Evaluator::eval(AstNode *node) {
 
     case INFIXEXPR: {
       auto expr = (((Expression *)(node))->left);
-      auto left = eval(expr);
+      auto left = eval(expr, env);
       if (is_error(left))
         return left;
 
       expr = (((Expression *)(node))->right);
-      auto right = eval(expr);
+      auto right = eval(expr, env);
       if (is_error(right))
         return right;
 
@@ -200,16 +208,16 @@ Object *Evaluator::eval(AstNode *node) {
 
     case IFEXPR: {
       auto expr = (IfExpression *)node;
-      auto condition = eval(expr->cond);
+      auto condition = eval(expr->cond, env);
 
       if (is_error(condition))
         return condition;
 
       if (is_truthy(condition)) {
-        return eval(expr->conseq);
+        return eval(expr->conseq, env);
 
       } else if (expr->altern != NULL) {
-        return eval(expr->altern);
+        return eval(expr->altern, env);
 
       } else {
         return (Object *)(new NullLiteral());
@@ -220,15 +228,28 @@ Object *Evaluator::eval(AstNode *node) {
 
   case STATEMENT: {
     auto statementNode = (Statement *)node;
+
     switch (statementNode->type) {
-    case BLOCKSTAT: {
-      auto statements = ((BlockStatement *)statementNode)->statements;
-      return eval_block_statements(statements);
+
+    case LETSTATEMENT: {
+      auto identifierExpression =
+          (Identifier *)((LetStatement *)statementNode)->id;
+      auto id = identifierExpression->id;
+      auto valueExpression = ((LetStatement *)statementNode)->val;
+      auto value = eval(valueExpression, env);
+      if (is_error(value))
+        return value;
+      return env->set(id, value);
     }
 
-    case RETURNSTAT: {
+    case BLOCKSTATEMENT: {
+      auto statements = ((BlockStatement *)statementNode)->statements;
+      return eval_block_statements(statements, env);
+    }
+
+    case RETURNSTATEMENT: {
       auto valueExpression = ((ReturnStatement *)statementNode)->val;
-      auto value = eval(valueExpression);
+      auto value = eval(valueExpression, env);
       if (is_error(value))
         return value;
 
@@ -239,21 +260,22 @@ Object *Evaluator::eval(AstNode *node) {
   }
 }
 
-Object *Evaluator::eval_block_statements(std::vector<Statement *> statements) {
+Object *Evaluator::eval_block_statements(std::vector<Statement *> statements,
+                                         Environment *env) {
   Object *result = NULL;
   for (auto statement : statements) {
     auto statementNode = (AstNode *)statement;
     switch (statement->type) {
-    case LETSTAT:
+    case LETSTATEMENT:
       break;
 
-    case RETURNSTAT: {
-      auto value = eval(((ReturnStatement *)statementNode)->val);
+    case RETURNSTATEMENT: {
+      auto value = eval(((ReturnStatement *)statementNode)->val, env);
       return (Object *)new ReturnLiteral(value);
     }
 
-    case EXPRSTAT: {
-      result = eval(((ExpressionStatement *)statementNode)->exp);
+    case EXPRSTATEMENT: {
+      result = eval(((ExpressionStatement *)statementNode)->exp, env);
       break;
     }
     }

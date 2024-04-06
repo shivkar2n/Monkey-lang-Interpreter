@@ -1,6 +1,7 @@
 #include "interpreter/interpreter.hpp"
 
 int main(int argc, char const *argv[]) {
+  Interpreter interpreter;
   std::string PROMPT = ">>";
   std::string line = " ";
 
@@ -8,8 +9,8 @@ int main(int argc, char const *argv[]) {
     try {
       std::cout << PROMPT;
       std::getline(std::cin, line);
-      Interpreter interpreter;
       interpreter.run(line);
+
     } catch (std ::string msg) {
       std::cerr << msg << '\n';
     }

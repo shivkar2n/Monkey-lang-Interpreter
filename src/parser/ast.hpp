@@ -24,7 +24,12 @@ enum ExpressionType {
   CALLEXPR
 };
 
-enum StatementType { LETSTAT, EXPRSTAT, RETURNSTAT, BLOCKSTAT };
+enum StatementType {
+  LETSTATEMENT,
+  EXPRSTATEMENT,
+  RETURNSTATEMENT,
+  BLOCKSTATEMENT
+};
 
 class AstNode {
 public:
@@ -161,7 +166,7 @@ public:
   Expression *id, *val;
 
   LetStatement(Expression *id, Expression *val) {
-    this->type = LETSTAT;
+    this->type = LETSTATEMENT;
     this->id = id;
     this->val = val;
   }
@@ -172,7 +177,7 @@ public:
   Expression *val;
 
   ReturnStatement(Expression *val) {
-    this->type = RETURNSTAT;
+    this->type = RETURNSTATEMENT;
     this->val = val;
   }
 };
@@ -182,7 +187,7 @@ public:
   Expression *exp;
 
   ExpressionStatement(Expression *exp) {
-    this->type = EXPRSTAT;
+    this->type = EXPRSTATEMENT;
     this->exp = exp;
   }
 };
@@ -193,7 +198,7 @@ public:
   std::vector<Statement *> statements;
 
   BlockStatement(TokenType tokenType) {
-    this->type = BLOCKSTAT;
+    this->type = BLOCKSTATEMENT;
     this->tokenType = tokenType;
   }
 };

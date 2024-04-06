@@ -1,3 +1,6 @@
+#if !defined(EVALUATOR_OBJECT_HPP)
+#define EVALUATOR_OBJECT_HPP
+
 enum ObjectType { INTEGER, BOOLEAN, NULLVAL, RETURNVAL, ERROR };
 
 std::unordered_map<ObjectType, std::string> get_object_string = {
@@ -52,8 +55,11 @@ public:
 };
 
 class Error : Object {
-  std::string message;
+public:
+  std::string value;
 
 public:
-  Error(std::string message) { this->message = message; }
+  Error(std::string value) { this->value = value; }
 };
+
+#endif
