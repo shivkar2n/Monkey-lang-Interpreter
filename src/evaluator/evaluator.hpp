@@ -17,6 +17,14 @@ public:
   Object *eval_minus_operator(Object *right);
   Object *eval_block_statements(std::vector<Statement *> statements,
                                 Environment *env);
+  std::vector<Object *> eval_expressions(std::vector<Expression *> nodes,
+                                         Environment *env);
+
+  Object *apply_function(Object *function, std::vector<Object *> arguements);
+
+  Environment *extend_function_env(Object *function,
+                                   std::vector<Object *> arguements);
+  Object *unwrap_return_value(Object *object);
   bool is_truthy(Object *condition);
 };
 
@@ -160,6 +168,19 @@ Object *Evaluator ::eval_minus_operator(Object *right) {
   return (Object *)new IntegerLiteral(-value);
 }
 
+std::vector<Object *>
+Evaluator ::eval_expressions(std::vector<Expression *> expressions,
+                             Environment *env) {
+  std::vector<Object *> result;
+  for (auto &expression : expressions) {
+    auto evaluated = eval(expression, env);
+    if (is_error(evaluated))
+      return std::vector<Object *>{evaluated};
+    result.push_back(evaluated);
+  }
+  return result;
+}
+
 Object *Evaluator::eval(AstNode *node, Environment *env) {
   switch (node->nodeType) {
   case PROGRAM: {
@@ -172,6 +193,7 @@ Object *Evaluator::eval(AstNode *node, Environment *env) {
     switch (exprNode->expressionType) {
 
     case IDENTIFIEREXPR: {
+      auto identifier = ((Identifier *)node);
       auto id = ((Identifier *)node)->id;
       return env->get(id);
     }
@@ -223,6 +245,22 @@ Object *Evaluator::eval(AstNode *node, Environment *env) {
         return (Object *)(new NullLiteral());
       }
     }
+
+    case FNEXPR: {
+      auto expr = (FunctionLiteral *)node;
+      auto body = expr->body;
+      auto parameters = expr->parameters;
+      return (Object *)(new Function(parameters, body, env));
+    }
+
+    case CALLEXPR: {
+      auto callExpression = (CallExpression *)node;
+      auto function = eval(callExpression->function, env);
+      if (is_error(function))
+        return function;
+      auto arguements = eval_expressions(callExpression->arguements, env);
+      return apply_function(function, arguements);
+    }
     }
   }
 
@@ -266,8 +304,9 @@ Object *Evaluator::eval_block_statements(std::vector<Statement *> statements,
   for (auto statement : statements) {
     auto statementNode = (AstNode *)statement;
     switch (statement->type) {
-    case LETSTATEMENT:
-      break;
+    case LETSTATEMENT: {
+      return eval(statement, env);
+    }
 
     case RETURNSTATEMENT: {
       auto value = eval(((ReturnStatement *)statementNode)->val, env);
@@ -287,6 +326,35 @@ Object *Evaluator::eval_block_statements(std::vector<Statement *> statements,
     }
   }
   return result;
+}
+
+Object *Evaluator ::apply_function(Object *function,
+                                   std::vector<Object *> arguements) {
+
+  Environment *extendedEnv = extend_function_env(function, arguements);
+
+  auto body = ((Function *)function)->body;
+  auto parameters = ((Function *)function)->parameters;
+
+  for (int i = 0; i < parameters.size(); i++)
+    extendedEnv->set(parameters[i]->id, arguements[i]);
+
+  auto evaluated = eval(body, extendedEnv);
+  return unwrap_return_value(evaluated);
+}
+
+Environment *Evaluator ::extend_function_env(Object *function,
+                                             std::vector<Object *> arguements) {
+  auto functionObj = (Function *)function;
+  Environment *env = new Environment(functionObj->env);
+  return env;
+}
+
+Object *Evaluator::unwrap_return_value(Object *object) {
+  if (object->type == RETURNVAL) {
+    return ((ReturnLiteral *)object)->value;
+  }
+  return object;
 }
 
 bool Evaluator ::is_truthy(Object *condition) {

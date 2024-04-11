@@ -1,11 +1,12 @@
 #if !defined(EVALUATOR_OBJECT_HPP)
 #define EVALUATOR_OBJECT_HPP
+class Environment;
 
-enum ObjectType { INTEGER, BOOLEAN, NULLVAL, RETURNVAL, ERROR };
+enum ObjectType { INTEGER, BOOLEAN, NULLVAL, RETURNVAL, ERROR, FUNCTIONOBJ };
 
 std::unordered_map<ObjectType, std::string> get_object_string = {
     {INTEGER, "INTEGER"},     {BOOLEAN, "BOOLEAN"}, {NULLVAL, "NULLVAL"},
-    {RETURNVAL, "RETURNVAL"}, {ERROR, "ERROR"},
+    {RETURNVAL, "RETURNVAL"}, {ERROR, "ERROR"},     {FUNCTIONOBJ, "FUNCTION"},
 };
 
 class Object {
@@ -57,9 +58,27 @@ public:
 class Error : Object {
 public:
   std::string value;
+  Error(std::string value) {
+    this->type = ERROR;
+    this->value = value;
+  }
+};
 
+class Function : Object {
 public:
-  Error(std::string value) { this->value = value; }
+  std::vector<Identifier *> parameters;
+  BlockStatement *body;
+  Environment *env;
+
+  Function(std::vector<Identifier *> parameters, BlockStatement *body,
+           Environment *env
+
+  ) {
+    this->type = FUNCTIONOBJ;
+    this->parameters = parameters;
+    this->body = body;
+    this->env = env;
+  }
 };
 
 #endif
