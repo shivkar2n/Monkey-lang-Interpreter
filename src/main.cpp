@@ -1,4 +1,4 @@
-#include "interpreter/interpreter.hpp"
+#include "interpreter/interpreter.cpp"
 
 int main(int argc, char const *argv[]) {
   Interpreter interpreter;

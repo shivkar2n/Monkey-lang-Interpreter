@@ -41,8 +41,7 @@ enum TokenType {
   EOFL
 };
 
-class Token {
-public:
+struct Token {
   TokenType tokenType;
   std::string lexeme;
 };
