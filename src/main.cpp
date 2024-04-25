@@ -1,17 +1,21 @@
-#include "interpreter/interpreter.cpp"
+#include "interpreter/src/interpreter.cpp"
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const *argv[])
+{
   Interpreter interpreter;
   std::string PROMPT = ">>";
   std::string line = " ";
 
-  while (line != "") {
-    try {
+  while (line != "")
+  {
+    try
+    {
       std::cout << PROMPT;
       std::getline(std::cin, line);
       interpreter.run(line);
-
-    } catch (std ::string msg) {
+    }
+    catch (std ::string msg)
+    {
       std::cerr << msg << '\n';
     }
   }

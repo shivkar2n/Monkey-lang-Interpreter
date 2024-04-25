@@ -1,5 +1,5 @@
-#include "../evaluator/evaluator.cpp"
-#include "../parser/parser.cpp"
+#include "evaluator.cpp"
+#include "parser.cpp"
 #include <iostream>
 
 class Interpreter

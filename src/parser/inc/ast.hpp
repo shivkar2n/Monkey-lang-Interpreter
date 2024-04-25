@@ -1,19 +1,32 @@
-#include "../lexer/lexer.hpp"
+#include "lexer.cpp"
 #include <string>
 
 #if !defined(PARSER_AST_HPP)
 #define PARSER_AST_HPP
 
-enum NodeType { PROGRAM, EXPRESSION, STATEMENT };
+enum NodeType
+{
+  PROGRAM,
+  EXPRESSION,
+  STATEMENT
+};
 
-enum Precedence { LOWEST, EQUALS, LESSGREATER, SUM, PRODUCT, PREFIX, CALL };
+enum Precedence
+{
+  LOWEST,
+  EQUALS,
+  LESSGREATER,
+  SUM,
+  PRODUCT,
+  PREFIX,
+  CALL
+};
 
 std::unordered_map<TokenType, Precedence> tokenPrecedence = {
-    {EQUAL, EQUALS},   {NOT_EQUAL, EQUALS}, {GT, LESSGREATER},
-    {LT, LESSGREATER}, {PLUS, SUM},         {MINUS, SUM},
-    {DIVIDE, PRODUCT}, {MULTIPLY, PRODUCT}, {LPAREN, CALL}};
+    {EQUAL, EQUALS}, {NOT_EQUAL, EQUALS}, {GT, LESSGREATER}, {LT, LESSGREATER}, {PLUS, SUM}, {MINUS, SUM}, {DIVIDE, PRODUCT}, {MULTIPLY, PRODUCT}, {LPAREN, CALL}};
 
-enum ExpressionType {
+enum ExpressionType
+{
   IDENTIFIEREXPR,
   INTEGEREXPR,
   PREFIXEXPR,
@@ -24,14 +37,16 @@ enum ExpressionType {
   CALLEXPR
 };
 
-enum StatementType {
+enum StatementType
+{
   LETSTATEMENT,
   EXPRSTATEMENT,
   RETURNSTATEMENT,
   BLOCKSTATEMENT
 };
 
-class AstNode {
+class AstNode
+{
 public:
   NodeType nodeType;
 };
@@ -45,13 +60,15 @@ class Statement;
 class BlockStatement;
 class Identifier;
 
-class Program : public AstNode {
+class Program : public AstNode
+{
 public:
   std::vector<Statement *> statements;
   Program() { nodeType = PROGRAM; }
 };
 
-class Expression : public AstNode {
+class Expression : public AstNode
+{
 public:
   int value;
   Expression *left, *right;
@@ -61,11 +78,13 @@ public:
   Expression() { this->nodeType = EXPRESSION; }
 };
 
-class PrefixExpression : public Expression {
+class PrefixExpression : public Expression
+{
 public:
   std::string op;
 
-  PrefixExpression(TokenType tokenType, std::string op, Expression *right) {
+  PrefixExpression(TokenType tokenType, std::string op, Expression *right)
+  {
     this->expressionType = PREFIXEXPR;
     this->tokenType = tokenType;
     this->op = op;
@@ -73,12 +92,14 @@ public:
   }
 };
 
-class InfixExpression : public Expression {
+class InfixExpression : public Expression
+{
 public:
   std::string op;
 
   InfixExpression(TokenType tokenType, std::string op, Expression *left,
-                  Expression *right) {
+                  Expression *right)
+  {
     this->expressionType = INFIXEXPR;
     this->tokenType = tokenType;
     this->op = op;
@@ -87,42 +108,50 @@ public:
   }
 };
 
-class Identifier : public Expression {
+class Identifier : public Expression
+{
 public:
   std::string id;
 
-  Identifier(TokenType tokenType, std::string id) {
+  Identifier(TokenType tokenType, std::string id)
+  {
     this->expressionType = IDENTIFIEREXPR;
     this->tokenType = tokenType;
     this->id = id;
   }
 };
 
-class Integer : public Expression {
+class Integer : public Expression
+{
 public:
-  Integer(TokenType tokenType, int value) {
+  Integer(TokenType tokenType, int value)
+  {
     this->expressionType = INTEGEREXPR;
     this->tokenType = tokenType;
     this->value = value;
   }
 };
 
-class Boolean : public Expression {
+class Boolean : public Expression
+{
 public:
-  Boolean(TokenType tokenType, int value) {
+  Boolean(TokenType tokenType, int value)
+  {
     this->expressionType = BOOLEXPR;
     this->tokenType = tokenType;
     this->value = value;
   }
 };
 
-class IfExpression : public Expression {
+class IfExpression : public Expression
+{
 public:
   BlockStatement *conseq, *altern;
   Expression *cond;
 
   IfExpression(TokenType tokenType, BlockStatement *conseq,
-               BlockStatement *altern, Expression *cond) {
+               BlockStatement *altern, Expression *cond)
+  {
     this->expressionType = IFEXPR;
     this->tokenType = tokenType;
     this->conseq = conseq;
@@ -131,73 +160,86 @@ public:
   }
 };
 
-class FunctionLiteral : public Expression {
+class FunctionLiteral : public Expression
+{
 public:
   std::vector<Identifier *> parameters;
   BlockStatement *body;
 
-  FunctionLiteral(TokenType tokenType) {
+  FunctionLiteral(TokenType tokenType)
+  {
     this->expressionType = FNEXPR;
     this->tokenType = tokenType;
   }
 };
 
-class CallExpression : public Expression {
+class CallExpression : public Expression
+{
 public:
   Expression *function;
   std::vector<Expression *> arguements;
 
-  CallExpression(TokenType tokenType, Expression *function) {
+  CallExpression(TokenType tokenType, Expression *function)
+  {
     this->expressionType = CALLEXPR;
     this->tokenType = LPAREN;
     this->function = function;
   }
 };
 
-class Statement : public AstNode {
+class Statement : public AstNode
+{
 public:
   StatementType type;
 
   Statement() { this->nodeType = STATEMENT; }
 };
 
-class LetStatement : public Statement {
+class LetStatement : public Statement
+{
 public:
   Expression *id, *val;
 
-  LetStatement(Expression *id, Expression *val) {
+  LetStatement(Expression *id, Expression *val)
+  {
     this->type = LETSTATEMENT;
     this->id = id;
     this->val = val;
   }
 };
 
-class ReturnStatement : public Statement {
+class ReturnStatement : public Statement
+{
 public:
   Expression *val;
 
-  ReturnStatement(Expression *val) {
+  ReturnStatement(Expression *val)
+  {
     this->type = RETURNSTATEMENT;
     this->val = val;
   }
 };
 
-class ExpressionStatement : public Statement {
+class ExpressionStatement : public Statement
+{
 public:
   Expression *exp;
 
-  ExpressionStatement(Expression *exp) {
+  ExpressionStatement(Expression *exp)
+  {
     this->type = EXPRSTATEMENT;
     this->exp = exp;
   }
 };
 
-class BlockStatement : public Statement {
+class BlockStatement : public Statement
+{
 public:
   TokenType tokenType;
   std::vector<Statement *> statements;
 
-  BlockStatement(TokenType tokenType) {
+  BlockStatement(TokenType tokenType)
+  {
     this->type = BLOCKSTATEMENT;
     this->tokenType = tokenType;
   }

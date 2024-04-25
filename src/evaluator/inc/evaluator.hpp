@@ -1,6 +1,5 @@
-#include "../parser/ast.hpp"
+#include "ast.hpp"
 #include "environment.cpp"
-#include "object.hpp"
 #include <iostream>
 
 class Evaluator

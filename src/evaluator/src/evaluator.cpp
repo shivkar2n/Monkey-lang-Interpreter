@@ -1,4 +1,4 @@
-#include "./evaluator.hpp"
+#include "evaluator.hpp"
 
 Object *Evaluator::eval_program(std::vector<Statement *> statements,
                                 Environment *env)
@@ -14,6 +14,7 @@ Object *Evaluator::eval_program(std::vector<Statement *> statements,
 
     case RETURNSTATEMENT:
     {
+      result = new Object;
       auto value = eval(((ReturnStatement *)statement)->val, env);
       result->type = RETURNVAL;
       result->returnLiteral = new ReturnLiteral{value};
@@ -55,6 +56,7 @@ Object *Evaluator::eval_prefix_expression(AstNode *node, Object *right)
     int value = right->integerLiteral->value;
     std::string msg = "Unknown operator: " + op + " " + std::to_string(value);
     Object *result;
+    result = new Object;
     result->type = ERROR;
     result->error = new Error{msg};
     return result;
@@ -79,6 +81,7 @@ Object *Evaluator::eval_infix_expression(AstNode *node, Object *left,
     auto leftType = left->get_type();
     auto rightType = right->get_type();
     std::string msg = "Type Mismatch: " + leftType + " " + rightType;
+    result = new Object;
     result->type = ERROR;
     result->error = new Error{msg};
     return result;
@@ -88,7 +91,7 @@ Object *Evaluator::eval_infix_expression(AstNode *node, Object *left,
 Object *Evaluator::eval_integer_infix_operator(AstNode *node, Object *left,
                                                Object *right)
 {
-  Object *result;
+  Object *result = new Object;
   auto op = ((InfixExpression *)(node))->op;
   int leftValue = left->integerLiteral->value;
   int rightValue = right->integerLiteral->value;
@@ -163,12 +166,13 @@ Object *Evaluator::eval_integer_infix_operator(AstNode *node, Object *left,
     result->type = ERROR;
     result->error = new Error{msg};
   }
+  return result;
 }
 
 Object *Evaluator::eval_boolean_infix_operator(AstNode *node, Object *left,
                                                Object *right)
 {
-  Object *result;
+  Object *result = new Object;
   auto op = ((InfixExpression *)node)->op;
 
   int leftValue = left->booleanLiteral->value;
@@ -201,7 +205,7 @@ Object *Evaluator::eval_boolean_infix_operator(AstNode *node, Object *left,
 
 Object *Evaluator ::eval_boolean_operator(Object *right)
 {
-  Object *result;
+  Object *result = new Object;
   result->type = BOOLEAN;
 
   switch (right->integerLiteral->value)
@@ -222,7 +226,7 @@ Object *Evaluator ::eval_boolean_operator(Object *right)
 
 Object *Evaluator ::eval_minus_operator(Object *right)
 {
-  Object *result;
+  Object *result = new Object;
   if (right->type != INTEGER)
   {
     std::string msg = "Unknown operator: -" + right->get_type() + "\n";
@@ -276,7 +280,7 @@ Object *Evaluator::eval(AstNode *node, Environment *env)
 
     case BOOLEXPR:
     {
-      Object *result;
+      Object *result = new Object;
       bool value = ((Boolean *)exprNode)->value;
       result->type = BOOLEAN;
       result->booleanLiteral = new BooleanLiteral{value};
@@ -285,7 +289,7 @@ Object *Evaluator::eval(AstNode *node, Environment *env)
 
     case INTEGEREXPR:
     {
-      Object *result;
+      Object *result = new Object;
       int value = ((Integer *)exprNode)->value;
       result->type = INTEGER;
       result->integerLiteral = new IntegerLiteral{value};
@@ -334,7 +338,7 @@ Object *Evaluator::eval(AstNode *node, Environment *env)
       }
       else
       {
-        Object *result;
+        Object *result = new Object;
         result->type = NULLVAL;
         result->nullLiteral = new NullLiteral();
         return result;
@@ -346,8 +350,9 @@ Object *Evaluator::eval(AstNode *node, Environment *env)
       auto expr = (FunctionLiteral *)node;
       auto body = expr->body;
       auto parameters = expr->parameters;
-      Object *result;
+      Object *result = new Object;
       result->type = FUNCTIONOBJ;
+      result->function = new Function;
       result->function->body = body;
       result->function->parameters = parameters;
       return result;
@@ -397,7 +402,7 @@ Object *Evaluator::eval(AstNode *node, Environment *env)
       if (is_error(value))
         return value;
 
-      Object *result;
+      Object *result = new Object;
       result->type = RETURNVAL;
       result->returnLiteral = new ReturnLiteral{value};
       return result;
@@ -424,6 +429,7 @@ Object *Evaluator::eval_block_statements(std::vector<Statement *> statements,
     case RETURNSTATEMENT:
     {
       auto value = eval(((ReturnStatement *)statementNode)->val, env);
+      result = new Object;
       result->type = RETURNVAL;
       result->returnLiteral = new ReturnLiteral{value};
       return result;

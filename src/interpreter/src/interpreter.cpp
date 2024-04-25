@@ -1,4 +1,4 @@
-#include "./interpreter.hpp"
+#include "interpreter.hpp"
 
 void Interpreter::print(Object *result)
 {
